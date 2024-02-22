@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/Game2048.dir/2048.cpp.o -o Game2048  /usr/lib/x86_64-linux-gnu/libsfml-graphics.so /usr/lib/x86_64-linux-gnu/libsfml-window.so /usr/lib/x86_64-linux-gnu/libsfml-system.so 
