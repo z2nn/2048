@@ -1,2 +1,0 @@
-/usr/bin/ar qc lib2048.a CMakeFiles/2048.dir/2048.cpp.o
-/usr/bin/ranlib lib2048.a

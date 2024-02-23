@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/home/aurora/2048/build",
-  "command": "/usr/bin/c++   -g -std=gnu++14 -o CMakeFiles/Game2048.dir/2048.cpp.o -c /home/aurora/2048/2048.cpp",
-  "file": "/home/aurora/2048/2048.cpp"
-}
-]

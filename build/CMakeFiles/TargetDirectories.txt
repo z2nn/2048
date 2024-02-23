@@ -1,5 +1,0 @@
-/home/aurora/2048/build/CMakeFiles/Game2048.dir
-/home/aurora/2048/build/CMakeFiles/package.dir
-/home/aurora/2048/build/CMakeFiles/package_source.dir
-/home/aurora/2048/build/CMakeFiles/edit_cache.dir
-/home/aurora/2048/build/CMakeFiles/rebuild_cache.dir

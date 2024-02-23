@@ -2,11 +2,16 @@
 #include <iostream>
 #include <cstdlib> 
 #include <cmath>
+#include <zmq.hpp>
+#include <jsoncpp/json/json.h>
 
 const int SIZE = 4;
 
 class Game2048 {
 public:
+    bool isWin = false;
+    int nowScore = 0;
+    int nowStep = 0;
     Game2048() {
         // 初始化游戏棋盘
         for (int i = 0; i < SIZE; ++i) {
@@ -37,6 +42,30 @@ public:
 
         // 显示窗口内容
         window.display();
+    }
+
+    int getMaxValue() {
+        int maxValue = 0;
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                if (board[i][j] > maxValue) {
+                    maxValue = board[i][j];
+                }
+            }
+        }
+        return maxValue;
+    }
+
+    int getNumOfEmptyBlock() {
+        int count = 0;
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                if (board[i][j] == 0) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     void handleInput(sf::Event& event) {
@@ -79,11 +108,6 @@ void endGame(sf::RenderWindow& window) {
         gameOverText.setPosition(window.getSize().x / 2.0f, window.getSize().y / 2.0f);
         gameOverText.setFillColor(sf::Color::Red);
         window.draw(gameOverText);
-
-        window.display();
-        sf::sleep(sf::seconds(4)); 
-
-        window.close();
     }
 }
 
@@ -96,10 +120,25 @@ void endGame(sf::RenderWindow& window) {
 
         generateRandomBlock();
         generateRandomBlock();
+        nowStep = 0;
+        nowScore = 0;
 
         gameOver = false;
     }
-private:
+
+    bool isFull() {
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                if (board[i][j] == 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
+
+    }
+
+public:
     int board[SIZE][SIZE];
     sf::Font font;  // 添加字体成员变量
     bool ifgenerate;
@@ -118,6 +157,16 @@ private:
     sf::Color(148, 0, 211),   
     sf::Color::Black
 };
+    int getTotalScore() {
+        int totalScore = 0;
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                totalScore += board[i][j];
+            }
+        }
+        return totalScore;
+    }
+
 void drawBlock(sf::RenderWindow& window, int row, int col) {
         sf::RectangleShape block(sf::Vector2f(100.f, 100.f));
         block.setOutlineThickness(2.f);
@@ -178,6 +227,7 @@ void moveUp() {
                 // 合并相同数字的方块
                 if (newRow >= 0 && board[newRow][col] == board[newRow + 1][col]) {
                     board[newRow][col] *= 2;
+                    nowScore += board[newRow][col];
                     board[newRow + 1][col] = 0;
                     ifgenerate=true;
                 }
@@ -208,6 +258,7 @@ void moveDown() {
                 // 合并相同数字的方块
                 if (newRow < SIZE && board[newRow][col] == board[newRow - 1][col]) {
                     board[newRow][col] *= 2;
+                    nowScore += board[newRow][col];
                     board[newRow - 1][col] = 0;
                     ifgenerate=true;
                 }
@@ -238,6 +289,7 @@ void moveLeft() {
                 // 合并相同数字的方块
                 if (newCol >= 0 && board[row][newCol] == board[row][newCol + 1]) {
                     board[row][newCol] *= 2;
+                    nowScore += board[row][newCol];
                     board[row][newCol + 1] = 0;
                     ifgenerate=true;
                 }
@@ -268,6 +320,7 @@ void moveRight() {
                 // 合并相同数字的方块
                 if (newCol < SIZE && board[row][newCol] == board[row][newCol - 1]) {
                     board[row][newCol] *= 2;
+                    nowScore += board[row][newCol];
                     board[row][newCol-1] = 0;
                     ifgenerate=true;
                 }
@@ -282,7 +335,7 @@ void checkFor2048() {
     for (int i = 0; i < SIZE; ++i) {
         for (int j = 0; j < SIZE; ++j) {
             if (board[i][j] == 2048) {
-                gameOver = true;
+                isWin = true;
             }
         }
     }
@@ -343,20 +396,114 @@ int main() {
 
     Game2048 game;
 
+
+
+    zmq::context_t context(1);
+    zmq::socket_t socketPlayer(context, ZMQ_REP);
+    socketPlayer.bind("tcp://*:5554");
+
+    srand(static_cast<unsigned>(time(0)));
+
     while (window.isOpen()) {
         sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
-                window.close();
+            while (window.pollEvent(event)) {
+                if (event.type == sf::Event::Closed) {
+                    window.close();
+                }
             }
 
-            // 处理用户输入
-            game.handleInput(event);
+
+        zmq::message_t requestPlayer;
+        socketPlayer.recv(requestPlayer);
+        std::string req_str_player(static_cast<char*>(requestPlayer.data()), requestPlayer.size());
+
+        Json::Value req_json_player;
+        std::istringstream(req_str_player) >> req_json_player;
+        int action = req_json_player["action"].asInt();
+
+        switch (action)
+        {
+            case 0:
+                game.moveUp();
+                break;
+            case 1:
+                game.moveDown();
+                break;
+            case 2:
+                game.moveLeft();
+                break;
+            case 3:
+                game.moveRight();
+                break;
+
         }
+        game.nowStep++;
+
+
+        Json::Value responsePlayer;
+        Json::Value matrix(Json::arrayValue);
+        for (int i = 0; i < SIZE; ++i) {
+            Json::Value row(Json::arrayValue);
+            for (int j = 0; j < SIZE; ++j) {
+                row.append(game.board[i][j]);
+            }
+            matrix.append(row);
+        }
+
+        responsePlayer["game_state"] = matrix;
+        if (game.isWin || game.gameOver)
+        {
+            responsePlayer["ifEnd"] = 1;
+        }
+        else
+        {
+            responsePlayer["ifEnd"] = 0;
+        }
+
+
+        if (game.isWin)
+        {
+            game.resetGame();
+            responsePlayer["reward"] = 1000;
+            game.isWin = false;
+        }
+        else if (game.gameOver)
+        {
+            game.resetGame();
+            responsePlayer["reward"] = -1000;
+            game.gameOver = false;
+        }
+        else
+        {
+            if (!game.isFull())
+            {
+                responsePlayer["reward"] = game.nowScore + game.nowStep + game.getNumOfEmptyBlock() * 10 + game.getMaxValue() * 10;
+                game.nowScore = 0;
+                game.generateRandomBlock();
+            }
+            else
+            {
+                responsePlayer["reward"] = game.nowScore - 200 + game.nowStep + game.getMaxValue() * 10;
+                game.nowScore = 0;
+            }
+        }
+
+        Json::StreamWriterBuilder writer;
+        std::string response_str_player = Json::writeString(writer, responsePlayer);
+
+        zmq::message_t replyPlayer(response_str_player.size());
+        memcpy((void *) replyPlayer.data(), response_str_player.c_str(), response_str_player.size());
+        socketPlayer.send(replyPlayer, zmq::send_flags::none);
+
+
 
         // 更新并绘制游戏状态
         game.draw(window);
-        game.endGame(window);
+
+        //sf::sleep(sf::seconds(0.01));
+
+        printf("reward: %d\n", responsePlayer["reward"].asInt());
+        printf("nowStep: %d\n", game.nowStep);
     }
 
     return 0;

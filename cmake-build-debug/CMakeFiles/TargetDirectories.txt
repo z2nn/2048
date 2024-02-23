@@ -1,0 +1,3 @@
+/home/zhujunheng/2048/cmake-build-debug/CMakeFiles/Game2048.dir
+/home/zhujunheng/2048/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/zhujunheng/2048/cmake-build-debug/CMakeFiles/rebuild_cache.dir
