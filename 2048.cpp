@@ -464,26 +464,26 @@ int main() {
         if (game.isWin)
         {
             game.resetGame();
-            responsePlayer["reward"] = 1000;
+            responsePlayer["reward"] = 0;
             game.isWin = false;
         }
         else if (game.gameOver)
         {
             game.resetGame();
-            responsePlayer["reward"] = -1000;
+            responsePlayer["reward"] = 0;
             game.gameOver = false;
         }
         else
         {
             if (!game.isFull())
             {
-                responsePlayer["reward"] = game.nowScore + game.nowStep + game.getNumOfEmptyBlock() * 10 + game.getMaxValue() * 10;
+                responsePlayer["reward"] = game.nowScore;
                 game.nowScore = 0;
                 game.generateRandomBlock();
             }
             else
             {
-                responsePlayer["reward"] = game.nowScore - 200 + game.nowStep + game.getMaxValue() * 10;
+                responsePlayer["reward"] = game.nowScore;
                 game.nowScore = 0;
             }
         }
